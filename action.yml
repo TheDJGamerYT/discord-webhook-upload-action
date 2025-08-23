@@ -28,15 +28,11 @@ inputs:
     required: true
     default: |
       New dev build:
+
   message_commit:
     description: 'Per-commit message'
     required: false
     default: '> [${commitMessage}](<${commitUrl}>) by [${authorName}](<${authorUrl}>)'
-runs:
-  using: 'node20'
-  main: 'dist/index.js'
-
-# --- Added customizability options ---
   split_length:
     description: 'Maximum message length before splitting (default: 2000)'
     required: false

@@ -35,3 +35,24 @@ inputs:
 runs:
   using: 'node20'
   main: 'dist/index.js'
+
+# --- Added customizability options ---
+  split_length:
+    description: 'Maximum message length before splitting (default: 2000)'
+    required: false
+    default: '2000'
+  split_char:
+    description: 'Character to split messages on (default: \n)'
+    required: false
+    default: '\n'
+  file_attach_mode:
+    description: 'Attach files to every message ("always"), only last ("last"), or never ("never")'
+    required: false
+    default: 'last'
+  webhook_suppress_errors:
+    description: 'Suppress webhook errors (true/false)'
+    required: false
+    default: 'false'
+runs:
+  using: 'node20'
+  main: 'dist/index.js'

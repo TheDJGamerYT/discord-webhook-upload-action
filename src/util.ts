@@ -20,39 +20,57 @@ export interface SplitOptions {
     append?: string;
 }
 
+export interface SendOptions {
+    splitLength?: number;
+    splitChar?: string;
+    fileAttachMode?: 'always' | 'last' | 'never';
+    suppressErrors?: boolean;
+}
+
 export async function send(
     url: string,
     name: string,
     avatar: string,
     text: string,
     file: string,
-    maxLength: number = 2000,
+    opts?: SendOptions
 ) {
+    const {
+        splitLength = 2000,
+        splitChar = '\n',
+        fileAttachMode = 'last',
+        suppressErrors = false,
+    } = opts || {};
+
     const paths = (await findFilesToUpload(file)).filesToUpload;
-    
-    async function send(message: string, attachFile: boolean) {
+
+    async function sendMessage(message: string, attachFile: boolean) {
         let data: DiscordWebhookOptions = {
             username: name,
             avatar_url: avatar,
-
             content: message,
         };
-
-        if (attachFile && paths) {
+        if (attachFile && paths && paths.length > 0) {
             data.files = paths.map(file => ({ name: path.basename(file), data: file }));
         }
+        try {
+            await sendDiscordWebhook(url, data);
+        } catch (e) {
+            if (!suppressErrors) throw e;
+        }
+    }
 
-        await sendDiscordWebhook(url, data);
+    if (text.length < splitLength) {
+        return await sendMessage(text, fileAttachMode === 'always' || fileAttachMode === 'last');
     }
-    
-    if (text.length < maxLength) {
-        return await send(text, true);
-    }
-    
-    const splitText: string[] = splitMessage(text, { maxLength });
-    
+
+    const splitText: string[] = splitMessage(text, { maxLength: splitLength, char: splitChar });
+
     for (let i = 0; i < splitText.length; i++) {
-        await send(splitText[i], i == splitText.length - 1);
+        let attachFile = false;
+        if (fileAttachMode === 'always') attachFile = true;
+        else if (fileAttachMode === 'last') attachFile = (i === splitText.length - 1);
+        await sendMessage(splitText[i], attachFile);
     }
 }
 

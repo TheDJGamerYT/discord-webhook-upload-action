@@ -24,7 +24,10 @@ function fmtCommit(format: string, commit: Commit): string[] {
 
 export async function run() {
     const mode = core.getInput('mode');
-    const msgHeader = core.getInput('message_header');
+    let msgHeader = core.getInput('message_header');
+    // Remove all occurrences of %COMMIT% from message_header
+    msgHeader = msgHeader.replace(/%COMMIT%/g, '');
+    msgHeader = msgHeader.replace(/%COMMITS%/g, '');
     const msgPart = core.getInput(`message_${mode}`);
     let message = msgHeader;
     if (mode === 'commit') {

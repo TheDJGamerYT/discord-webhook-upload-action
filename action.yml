@@ -1,54 +1,120 @@
-name: 'Discord Webhook Upload'
-description: 'Send a message to discord webhook on a commit'
-icon: 'cast'
-color: 'blue'
-inputs:
-  url: # id of input
-    description: 'Webhook URL'
-    required: true
-    default: ''
-  username:
-    description: 'Webhook username'
-    required: false
-    default: 'Username'
-  avatar:
-    description: 'Avatar URL'
-    required: false
-    default: ''
-  file:
-    description: 'File to send'
-    required: false
-    default: ''
-  mode:
-    description: 'Action mode: currently only supports "commit"'
-    required: false
-    default: 'commit'
-  message_header:
-    description: 'Message to send'
-    required: true
-    default: |
-      New dev build:
+name: 'Discord Webhook Upload Action'
+description: 'Send Discord webhook messages with file attachments, rich embeds, and retry support.'
+branding:
+  icon: send
+  color: purple
 
-  message_commit:
-    description: 'Per-commit message'
+inputs:
+  url:
+    description: 'Discord webhook URL'
+    required: true
+
+  username:
+    description: 'Display name for the webhook bot'
     required: false
-    default: '> [${commitMessage}](<${commitUrl}>) by [${authorName}](<${authorUrl}>)'
-  split_length:
-    description: 'Maximum message length before splitting (default: 2000)'
+    default: 'GitHub Actions'
+
+  avatar:
+    description: 'Avatar image URL for the webhook bot'
     required: false
-    default: '2000'
-  split_char:
-    description: 'Character to split messages on (default: \n)'
+    default: ''
+
+  file:
+    description: 'Glob pattern for files to upload (e.g. build/libs/*.jar)'
     required: false
-    default: '\n'
+    default: ''
+
   file_attach_mode:
-    description: 'Attach files to every message ("always"), only last ("last"), or never ("never")'
+    description: 'When to attach files: "always" (every message), "last" (last message only), "never"'
     required: false
     default: 'last'
-  webhook_suppress_errors:
-    description: 'Suppress webhook errors (true/false)'
+
+  # ── Plain message templating ──────────────────────────────────────────────
+  message_header:
+    description: |
+      Header text prepended to the message. Supports placeholders:
+        ${buildNumber}  - GitHub run number
+        ${branch}       - branch name
+        ${repoName}     - repository name (owner/repo)
+        ${repoUrl}      - link to repository
+        ${workflowName} - name of the workflow
+        ${runUrl}       - direct link to this Actions run
+        %COMMITS%       - replaced with the per-commit lines
+    required: false
+    default: ''
+
+  message_commit:
+    description: |
+      Per-commit line template. Supports placeholders:
+        ${commitMessage} - commit message
+        ${commitUrl}     - link to the commit
+        ${authorName}    - commit author display name
+        ${authorUrl}     - link to author profile
+        ${shortSha}      - first 7 chars of the commit SHA
+    required: false
+    default: '> [`${shortSha}`](<${commitUrl}>) ${commitMessage} — [${authorName}](<${authorUrl}>)'
+
+  # ── Embed support ─────────────────────────────────────────────────────────
+  use_embed:
+    description: 'Send the message as a Discord embed instead of plain text (true/false)'
     required: false
     default: 'false'
+
+  embed_color:
+    description: |
+      Sidebar color for the embed as a decimal integer or one of the named presets:
+        blue, green, red, yellow, purple, orange, white, black
+      Ignored when use_embed is false.
+    required: false
+    default: 'blue'
+
+  embed_title:
+    description: 'Embed title. Supports the same placeholders as message_header. Ignored when use_embed is false.'
+    required: false
+    default: ''
+
+  embed_thumbnail:
+    description: 'URL for the embed thumbnail image. Ignored when use_embed is false.'
+    required: false
+    default: ''
+
+  embed_footer:
+    description: 'Footer text for the embed. Supports the same placeholders as message_header.'
+    required: false
+    default: ''
+
+  # ── Splitting ─────────────────────────────────────────────────────────────
+  split_length:
+    description: 'Maximum character length of a single Discord message before it is split (Discord hard limit: 2000)'
+    required: false
+    default: '2000'
+
+  split_char:
+    description: 'Character to split on when a message exceeds split_length'
+    required: false
+    default: '\n'
+
+  # ── Reliability ───────────────────────────────────────────────────────────
+  retry_count:
+    description: 'Number of times to retry a failed webhook request (0 = no retries)'
+    required: false
+    default: '3'
+
+  retry_delay_ms:
+    description: 'Milliseconds to wait between retries (doubles on each attempt)'
+    required: false
+    default: '1000'
+
+  webhook_suppress_errors:
+    description: 'If true, webhook errors do not fail the workflow step'
+    required: false
+    default: 'false'
+
+  mode:
+    description: 'Action mode. Currently only "commit" is supported.'
+    required: false
+    default: 'commit'
+
 runs:
   using: 'node20'
   main: 'dist/index.js'
